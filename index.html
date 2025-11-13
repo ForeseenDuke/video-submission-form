@@ -161,21 +161,30 @@
     const playback = document.getElementById('videoPlayback');
 
     startBtn.onclick = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      preview.srcObject = stream;
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: true
+        });
 
-      mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
-      };
+        preview.srcObject = stream;
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
 
-      mediaRecorder.start();
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      rerecordBtn.style.display = 'none';
-      playback.style.display = 'none';
-      playback.src = '';
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        rerecordBtn.style.display = 'none';
+        playback.style.display = 'none';
+        playback.src = '';
+      } catch (error) {
+        alert("Unable to access camera. Please check permissions or try a different browser.");
+        console.error("Camera access error:", error);
+      }
     };
 
     stopBtn.onclick = () => {
