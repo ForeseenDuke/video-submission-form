@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Submission Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    form {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    img {
+      display: block;
+      margin: 0 auto 20px auto;
+      width: 150px;
+      height: auto;
+    }
+
+    h2, h3 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      border-color: #0078D4;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background-color: #0078D4;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005A9E;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    video {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      margin-top: 15px;
+    }
+
+    #rerecordBtn {
+      background-color: #f44336;
+    }
+
+    #rerecordBtn:hover {
+      background-color: #d32f2f;
+    }
+
+    #confirmationScreen {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+      display: none;
+    }
+
+    #confirmationScreen button {
+      margin-top: 20px;
+    }
+
+    #redirectNotice {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <form id="submissionForm">
+    <img src="https://netorgft9614353.sharepoint.com/sites/MUL/Branding/Company%20Logo.png" alt="Company Logo">
+    <h2>Subcontractor Site Submission</h2>
+    <h3>Submit Your Video</h3>
+
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+
+    <label for="location">Site Location:</label>
+    <input type="text" id="location" required>
+
+    <label for="submissionDate">Date:</label>
+    <input type="date" id="submissionDate" required>
+
+    <label for="submissionTime">Time:</label>
+    <input type="time" id="submissionTime" required>
+
+    <button type="button" id="startBtn">Start Recording</button>
+    <button type="button" id="stopBtn" disabled>Stop Recording</button>
+    <button type="button" id="rerecordBtn" style="display:none;">Rerecord</button>
+
+    <video id="preview" autoplay muted></video>
+    <video id="videoPlayback" controls style="display:none;"></video>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="confirmationScreen">
+    <img src="https://netorgft9614353.sharepoint.com/sites/MUL/Branding/Company%20Logo.png" alt="Company Logo">
+    <h2>Thank you for your submission!</h2>
+    <p>Your video has been successfully uploaded.</p>
+    <p id="redirectNotice">You will be redirected to the submission form in 5 seconds…</p>
+    <button onclick="location.reload()">Submit Another Video</button>
+  </div>
+
+  <script>
+    let mediaRecorder;
+    let recordedChunks = [];
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const rerecordBtn = document.getElementById('rerecordBtn');
+    const preview = document.getElementById('preview');
+    const playback = document.getElementById('videoPlayback');
+
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      preview.srcObject = stream;
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      rerecordBtn.style.display = 'none';
+      playback.style.display = 'none';
+      playback.src = '';
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        playback.src = url;
+        playback.style.display = 'block';
+        rerecordBtn.style.display = 'inline-block';
+      };
+
+      mediaRecorder.stop();
+      preview.srcObject.getTracks().forEach(track => track.stop());
+      preview.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    rerecordBtn.onclick = () => {
+      recordedChunks = [];
+      playback.src = '';
+      playback.style.display = 'none';
+      rerecordBtn.style.display = 'none';
+      startBtn.click();
+    };
+
+    document.getElementById('submissionForm').onsubmit = async (e) => {
+      e.preventDefault();
+
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const formData = new FormData();
+      formData.append('name', document.getElementById('name').value);
+      formData.append('location', document.getElementById('location').value);
+      formData.append('date', document.getElementById('submissionDate').value);
+      formData.append('time', document.getElementById('submissionTime').value);
+      formData.append('video', blob, 'submission.webm');
+
+      const zapierWebhookUrl = 'https://hooks.zapier.com/hooks/catch/18836715/u8sbwg0/';
+
+      try {
+        const response = await fetch(zapierWebhookUrl, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          document.getElementById('submissionForm').style.display = 'none';
+          document.getElementById('confirmationScreen').style.display = 'block';
+
+          setTimeout(() => {
+            location.reload();
+          }, 5000);
+        } else {
+          alert('Submission failed.');
+        }
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('Submission error occurred.');
+      }
+    };
+  </script>
+</body>
+</html>
